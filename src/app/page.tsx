@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 import { useState, useEffect } from 'react';
 import { Event } from './types';
@@ -26,6 +26,10 @@ const HomePage = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [newdata, setData] = useState<Event>({ eventName: '', date: "", time: "", location: { building: "", room: "", address: { street: "", zip: "", city: "" } }, organizer: { name: "", email: "", phone: "" } });
 
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortKey, setSortKey] = useState<keyof typeof events[0] | ''>('');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
 
   // Fetch events from the JSON file
   useEffect(() => {
@@ -40,9 +44,30 @@ const HomePage = () => {
     }
   }, []);
 
+  const handleSort = (key: keyof typeof events[0]) => {
+    setSortKey(key);
+    setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+  };
+
   useEffect(() => {
     localStorage.setItem('events', JSON.stringify(events));
   }, [events]);
+
+  // Filter and Sort Logic
+  const filteredEvents = events
+    .filter((event) =>
+      event.eventName.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => {
+      if (!sortKey) return 0;
+
+      const valueA = a[sortKey as keyof typeof a] as string;
+      const valueB = b[sortKey as keyof typeof b] as string;
+
+      return sortOrder === 'asc'
+        ? valueA.localeCompare(valueB)
+        : valueB.localeCompare(valueA);
+    });
 
   const handleUpdate = () => {
   }
@@ -61,6 +86,34 @@ const HomePage = () => {
   return (
     <div className="container mx-auto space-y-4 px-4 py-6">
       <h1 className="text-2xl font-bold mb-4">Event Management</h1>
+
+      {/* Search Input */}
+      <div className="mb-4 flex justify-center">
+        <input
+          type="text"
+          placeholder="Search by event name..."
+          className="w-full max-w-md px-4 py-2 border rounded shadow-sm focus:outline-none focus:ring focus:ring-blue-300"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
+
+      {/* Sort Buttons */}
+      <div className="mb-4 flex justify-center space-x-4">
+        <button
+          className="bg-blue-500 text-white px-4 py-2 rounded"
+          onClick={() => handleSort('eventName')}
+        >
+          Sort by Name {sortKey === 'eventName' && (sortOrder === 'asc' ? '↓' : '↑')}
+        </button>
+        <button
+          className="bg-blue-500 text-white px-4 py-2 rounded"
+          onClick={() => handleSort('date')}
+        >
+          Sort by Date {sortKey === 'date' && (sortOrder === 'asc' ? '↓' : '↑')}
+        </button>
+      </div>
+
       <table className="table-auto w-full border-collapse border border-gray-300">
         <thead>
           <tr>
@@ -74,7 +127,7 @@ const HomePage = () => {
         </thead>
         <tbody>
 
-          {events.map((event, index) => (
+          {filteredEvents.map((event, index) => (
             <tr key={index}>
               <td className="border border-2 border-gray-500 px-4 py-2">{event.eventName}</td>
               <td className="border border-2 border-gray-500 px-4 py-2">{event.date}</td>
